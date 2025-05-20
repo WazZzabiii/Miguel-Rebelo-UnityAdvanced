@@ -1,37 +1,20 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField] GameObject gameOverScreen;
+    [SerializeField] private GameObject gameOverScreen;
     public static GameManager instance;
+
+    private const string DEFAULT_SCENE = "MainMenu";
+
     private void Awake()
     {
         if (instance == null)
         {
             instance = this;
             DontDestroyOnLoad(gameObject);
-
-            // Load saved game
-            SaveGameSingleton.Instance.OnLoadRequestedEvent.AddListener((data) =>
-            {
-                string savedScene = data.LastUnlockedScene;
-
-                if (!string.IsNullOrEmpty(savedScene))
-                {
-                    Debug.Log($"Loading saved scene: {savedScene}");
-                    SceneManager.LoadScene(savedScene);
-                }
-                else
-                {
-                    Debug.LogWarning("Saved scene was empty. Loading default.");
-                    SceneManager.LoadScene("Scene1"); // fallback
-                }
-            });
-
-            SaveGameSingleton.Instance.LoadSaveGameFromFile();
+            InitializeSaveSystem();
         }
         else
         {
@@ -39,24 +22,76 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void NextLevel()
+    private void InitializeSaveSystem()
     {
-        int currentIndex = SceneManager.GetActiveScene().buildIndex;
-        int nextIndex = currentIndex + 1;
-
-        if (nextIndex < SceneManager.sceneCountInBuildSettings)
+        if (SaveGameSingleton.Instance == null)
         {
-            SceneManager.LoadScene(nextIndex);
+            Debug.LogError("SaveGameSingleton not initialized!");
+            SceneManager.LoadScene(DEFAULT_SCENE);
+            return;
         }
-        else
+
+        SaveGameSingleton.Instance.OnLoadRequestedEvent.AddListener(LoadSavedScene);
+        SaveGameSingleton.Instance.LoadSaveGameFromFile();
+    }
+
+    private void LoadSavedScene(SaveData data)
+    {
+        if (data == null || string.IsNullOrEmpty(data.LastUnlockedScene))
         {
-            Debug.Log("No more levels.");
+            Debug.LogWarning("No saved scene found, loading default");
+            SceneManager.LoadScene(DEFAULT_SCENE);
+            return;
+        }
+
+        try
+        {
+            Debug.Log($"Loading saved scene: {data.LastUnlockedScene}");
+            SceneManager.LoadScene(data.LastUnlockedScene);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Failed to load scene {data.LastUnlockedScene}: {e.Message}");
+            SceneManager.LoadScene(DEFAULT_SCENE);
         }
     }
 
-public void GameOver()
+    public void NextLevel()
     {
-        gameOverScreen.SetActive(true);
-        //Time.timeScale = 0f;
+        try
+        {
+            int currentIndex = SceneManager.GetActiveScene().buildIndex;
+            int nextIndex = currentIndex + 1;
+
+            if (nextIndex < SceneManager.sceneCountInBuildSettings)
+            {
+                SceneManager.LoadScene(nextIndex);
+            }
+            else
+            {
+                Debug.Log("No more levels available!");
+                // Optionally load a completion scene or menu
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"Error loading next level: {e.Message}");
+        }
+    }
+
+    public void GameOver()
+    {
+        if (gameOverScreen != null)
+        {
+            gameOverScreen.SetActive(true);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (SaveGameSingleton.Instance != null)
+        {
+            SaveGameSingleton.Instance.OnLoadRequestedEvent.RemoveListener(LoadSavedScene);
+        }
     }
 }
