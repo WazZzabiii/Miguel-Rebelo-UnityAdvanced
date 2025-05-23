@@ -31,8 +31,8 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        SaveGameSingleton.Instance.OnLoadRequestedEvent.AddListener(LoadSavedScene);
-        SaveGameSingleton.Instance.LoadSaveGameFromFile();
+        //SaveGameSingleton.Instance.OnLoadRequestedEvent.AddListener(LoadSavedScene);
+        //SaveGameSingleton.Instance.LoadSaveGameFromFile();
     }
 
     private void LoadSavedScene(SaveData data)

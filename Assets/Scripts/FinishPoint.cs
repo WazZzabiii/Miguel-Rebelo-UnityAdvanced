@@ -35,7 +35,7 @@ public class FinishPoint : MonoBehaviour
             else
             {
                 Debug.LogError("GameManager instance not found!");
-                SceneManager.LoadScene(nextSceneName); // Fallback
+                //SceneManager.LoadScene(nextSceneName); // Fallback
             }
         }
     }
